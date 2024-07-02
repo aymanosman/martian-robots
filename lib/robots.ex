@@ -1,4 +1,87 @@
 defmodule Robots do
+  def run_string(string) do
+    StringIO.open(string, &run/1)
+  end
+
+  def run(device) do
+    {grid, robots} = parse(device)
+    process(robots, grid)
+  end
+
+  def parse(device) do
+    {parse_grid(device), parse_robots(device)}
+  end
+
+  def parse_grid(device) do
+    IO.read(device, :line)
+    |> String.split()
+    |> Enum.map(&parse_int!/1)
+    |> List.to_tuple()
+  end
+
+  defp parse_int!(string) do
+    {n, ""} = Integer.parse(string)
+    n
+  end
+
+  def parse_robots(device, acc \\ []) do
+    case IO.read(device, :line) do
+      :eof ->
+        Enum.reverse(acc)
+
+      data ->
+        case String.trim(data) do
+          "" ->
+            # skip whitespace
+            parse_robots(device, acc)
+
+          init_line ->
+            case IO.read(device, :line) do
+              :eof ->
+                raise "should never happen"
+
+              inst_line ->
+                parse_robots(device, [parse_robot(init_line, String.trim(inst_line)) | acc])
+            end
+        end
+    end
+  end
+
+  def parse_robot(init_line, inst_line) do
+    [x, y, dir] = String.split(init_line)
+    {{parse_int!(x), parse_int!(y), parse_dir(dir)}, parse_insts(inst_line)}
+  end
+
+  def parse_dir("N"), do: :N
+  def parse_dir("E"), do: :E
+  def parse_dir("S"), do: :S
+  def parse_dir("W"), do: :W
+
+  def parse_insts(string), do: Enum.map(String.graphemes(string), &parse_inst/1)
+
+  def parse_inst("L"), do: :L
+  def parse_inst("R"), do: :R
+  def parse_inst("F"), do: :F
+
+  def process(robots, grid, scents \\ MapSet.new())
+
+  def process([], _grid, _scents) do
+    :ok
+  end
+
+  def process([{init, insts} | rest], grid, scents) do
+    {x, y, dir, lost_or_safe} = result = move(init, insts, grid, scents)
+
+    IO.puts("#{x} #{y} #{dir}#{format_lost(lost_or_safe)}")
+    process(rest, grid, next_scents(result, scents))
+  end
+
+  def next_scents({x, y, _, :lost}, scents), do: MapSet.put(scents, {x, y})
+  def next_scents(_, scents), do: scents
+
+  def format_lost(:lost), do: " LOST"
+  def format_lost(:safe), do: ""
+
   def move(robot, insts, grid, scents \\ MapSet.new())
 
   def move({x, y, dir}, [], _grid, _scents) do

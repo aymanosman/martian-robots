@@ -1,20 +1,6 @@
 defmodule RobotsTest do
   use ExUnit.Case
-
-  # 5 3
-
-  # 1 1 E
-  # RFRFRFRF
-
-  # 3 2 N
-  # FRRFLLFFRRFLL
-
-  # 0 3 W
-  # LLFFFLFLFL
-
-  # 1 1 E
-  # 3 3 N LOST
-  # 2 3 S
+  import ExUnit.CaptureIO
 
   test "move" do
     grid = {5, 3}
@@ -30,5 +16,24 @@ defmodule RobotsTest do
                grid,
                MapSet.new([{3, 3}])
              )
+  end
+
+  test "parse" do
+    assert StringIO.open("5 3\n\n1 1 E\nRFRF", &Robots.parse/1) ==
+             {:ok, {{5, 3}, [{{1, 1, :E}, [:R, :F, :R, :F]}]}}
+  end
+
+  test "run" do
+    assert capture_io(fn ->
+             Robots.run_string("""
+             5 3
+
+             1 1 E
+             RFRFRFRF
+             """)
+           end) == "1 1 E\n"
+
+    {:ok, device} = StringIO.open(File.read!(Path.join(__DIR__, "example.input")))
+    assert capture_io(fn -> Robots.run(device) end) == File.read!(Path.join(__DIR__, "example.output"))
   end
 end
